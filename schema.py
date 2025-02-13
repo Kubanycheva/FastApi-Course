@@ -14,10 +14,16 @@ class UserProfileSchema(BaseModel):
     profile_picture: Optional[str] = None
     role: UserRole
 
+    class Config:
+        from_attributes = True
+
 
 class CategorySchema(BaseModel):
     id: int
     category_name: str
+
+    class Config:
+        from_attributes = True
 
 
 class CourseSchema(BaseModel):
@@ -42,12 +48,18 @@ class LessonSchema(BaseModel):
     content: Optional[str] = None
     course_id: int
 
+    class Config:
+        from_attributes = True
+
 
 class ExamSchema(BaseModel):
     id: int
     title: str
     course_id: int
     end_time: int
+
+    class Config:
+        from_attributes = True
 
 
 class QuestionSchema(BaseModel):
@@ -56,6 +68,9 @@ class QuestionSchema(BaseModel):
     title: str
     score: int
 
+    class Config:
+        from_attributes = True
+
 
 class CertificateSchema(BaseModel):
     id: int
@@ -63,3 +78,6 @@ class CertificateSchema(BaseModel):
     course_id: int
     issued_at: datetime
     certificate_url: str
+
+    class Config:
+        from_attributes = True
