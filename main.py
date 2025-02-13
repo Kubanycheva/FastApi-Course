@@ -1,14 +1,41 @@
 import fastapi
-from models import Category, Course, Lesson, Exam
-from schema import CategorySchema, CourseSchema, LessonSchema, ExamSchema
+from models import Category, Course, Lesson, Exam, Question, Certificate
+from schema import CategorySchema, CourseSchema, LessonSchema, ExamSchema, QuestionSchema, CertificateSchema
 from database import SessionLocal
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from typing import List
 from schema import *
 
+from authx import AuthX, AuthXConfig
 
 course_app = fastapi.FastAPI(title='Course Site')
+
+config = AuthXConfig()
+config.JWT_SECRET_KEY = 'SECRET_KEY'
+config.JWT_ACCESS_COOKIE_NAME = 'my_acces_token'
+config.JWT_TOKEN_LOCATION = ['cookies']
+
+security = AuthX(config=config)
+
+
+class UserLoginSchema(BaseModel):
+    username: str
+    password: str
+
+
+@course_app.post('/login')
+def login(creds: UserLoginSchema, response: Response):
+    if creds.username == 'test' and creds.password == 'test':
+        token = security.create_access_token(uid='12345')
+        response.set_cookie(config.JWT_ACCESS_COOKIE_NAME, token)
+        return {'acces_token': token}
+    raise HTTPException(status_code=401, detail='Incorrect username or password')
+
+
+@course_app.get('/protected', dependencies=[Depends(security.access_token_required)])
+def protected():
+    return {'data': 'TOP SECRET'}
 
 
 async def get_db():
@@ -116,7 +143,7 @@ async def create_lesson(lesson: LessonSchema, db: Session = Depends(get_db)):
     db.add(db_lesson)
     db.commit()
     db.refresh(db_lesson)
-    return db.lesson
+    return db_lesson
 
 
 @course_app.get('/lesson/', response_model=List[LessonSchema],  summary='Урок получения информации', tags=['Уроки'])
@@ -163,7 +190,7 @@ async def create_exam(exam: ExamSchema, db: Session = Depends(get_db)):
     db.add(db_exam)
     db.commit()
     db.refresh(db_exam)
-    return db.Exam
+    return db_exam
 
 
 @course_app.get('/exam/', response_model=List[ExamSchema], summary='Экзамен получения информации', tags=['Экзамены'])
@@ -202,3 +229,93 @@ async def delete_exam(exam_id: int, db: Session = Depends(get_db)):
     db.delete(exam)
     db.commit()
     return {'message': 'This exam is deleted'}
+
+
+@course_app.post('/question/create/', response_model=QuestionSchema, tags=['Вопросы'])
+async def create_questions(question: QuestionSchema, db: Session = Depends(get_db)):
+    db_question = Question(**question.dict())
+    db.add(db_question)
+    db.commit()
+    db.refresh(db_question)
+    return db_question
+
+
+@course_app.get('/question/', response_model=List[QuestionSchema], tags=['Вопросы'])
+async def list_question(db: Session = Depends(get_db)):
+    return db.query(Question).all()
+
+
+@course_app.get('/question/{question_id}/', response_model=QuestionSchema, tags=['Вопросы'])
+async def detail_question(question_id: int, db: Session = Depends(get_db)):
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if question is None:
+        raise HTTPException(status_code=404, detail='Question Not Found')
+    return question
+
+
+@course_app.put('/question/{question_id}/', response_model=QuestionSchema, tags=['Вопросы'])
+async def update_question(question_id: int, question_data: QuestionSchema,
+                          db: Session = Depends(get_db)):
+    question = db.query(Question).filter(Question.id == question_id).first()
+    if question is None:
+        raise HTTPException(status_code=404, detail='Question Not Found')
+    return question
+
+    for question_key, question_value in question_data.dict().items():
+        setattr(question, question_key, question_value)
+    db.commit()
+    db.refresh(question)
+    return question
+
+
+@course_app.post('/certificate/create/', response_model=CertificateSchema, tags=['Сертификаты'])
+async def create_certificate(certificate: CertificateSchema, db: Session = Depends(get_db)):
+    db_certificate = Certificate(**certificate.dict())
+    db.add(db_certificate)
+    db.commit()
+    db.refresh(db_certificate)
+    return db_certificate
+
+
+@course_app.get('/certificate/', response_model=List[CertificateSchema], tags=['Сертификаты'])
+async def list_certificate(db: Session = Depends(get_db)):
+    return db.query(Certificate).all()
+
+
+@course_app.get('/certificate/{certificate_id}', response_model=CertificateSchema, tags=['Сертификаты'])
+async def detail_certificate(certificate_id: int, db: Session = Depends(get_db)):
+    certificate = db.query(Certificate).filter(Certificate.id == certificate_id).first()
+    if certificate is None:
+        raise HTTPException(status_code=404, detail='Certificate Not Found')
+    return certificate
+
+
+@course_app.put('/certificate/{certificate_id}', response_model=CertificateSchema, tags=['Сертификаты'])
+async def update_certificate(certificate_id: int, certificate_data: CertificateSchema,
+                             db: Session = Depends(get_db)):
+    certificate = db.query(Certificate).filter(Certificate.id == certificate_id).first()
+    if certificate is None:
+        raise HTTPException(status_code=404, detail='Certificate Not Found')
+
+    for certificate_key, certificate_value in certificate_data.dict().items():
+        setattr(certificate, certificate_key, certificate_value)
+
+    db.commit()
+    db.refresh(certificate)
+    return certificate
+
+
+@course_app.delete('/certificate{certificate_id}/', tags=['Сертификаты'])
+async def delete_certificate(certificate_id: int,   db: Session = Depends(get_db)):
+    certificate = db.query(Certificate).filter(Certificate.id == certificate_id).first()
+    if certificate is None:
+        raise HTTPException(status_code=404, detail='Certificate Not Found')
+    db.delete(certificate)
+    db.commit()
+    return {'message': 'This certificate  is deleted'}
+
+
+
+
+
+
