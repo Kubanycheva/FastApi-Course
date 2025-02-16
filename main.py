@@ -1,41 +1,22 @@
 import fastapi
-from models import Category, Course, Lesson, Exam, Question, Certificate
-from schema import CategorySchema, CourseSchema, LessonSchema, ExamSchema, QuestionSchema, CertificateSchema
+from models import Category, Course, Lesson, Exam, Question, Certificate, UserProfile
+from schema import CategorySchema, CourseSchema, LessonSchema, ExamSchema, QuestionSchema, CertificateSchema, UserProfileSchema
 from database import SessionLocal
-from fastapi import Depends, HTTPException, Response
+from fastapi import Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from schema import *
+from config import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, ALGORITHM
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from datetime import timedelta, datetime
 
-from authx import AuthX, AuthXConfig
 
 course_app = fastapi.FastAPI(title='Course Site')
 
-config = AuthXConfig()
-config.JWT_SECRET_KEY = 'SECRET_KEY'
-config.JWT_ACCESS_COOKIE_NAME = 'my_acces_token'
-config.JWT_TOKEN_LOCATION = ['cookies']
-
-security = AuthX(config=config)
-
-
-class UserLoginSchema(BaseModel):
-    username: str
-    password: str
-
-
-@course_app.post('/login')
-def login(creds: UserLoginSchema, response: Response):
-    if creds.username == 'test' and creds.password == 'test':
-        token = security.create_access_token(uid='12345')
-        response.set_cookie(config.JWT_ACCESS_COOKIE_NAME, token)
-        return {'acces_token': token}
-    raise HTTPException(status_code=401, detail='Incorrect username or password')
-
-
-@course_app.get('/protected', dependencies=[Depends(security.access_token_required)])
-def protected():
-    return {'data': 'TOP SECRET'}
+oauth2_schema = OAuth2PasswordBearer(tokenUrl='/auth/login')
+password_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 
 
 async def get_db():
@@ -44,6 +25,48 @@ async def get_db():
         yield db
     finally:
         db.close
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({'exr': expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def create_refresh_token(data: dict):
+    return create_access_token(data, expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
+
+
+def verify_password(plain_password, hashed_password):
+    return password_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password):
+    return password_context.hash(password)
+
+
+@course_app.post('/register')
+async def register(user: UserProfileSchema,  db: Session = Depends(get_db)):
+    user_db = db.query(UserProfile).filter(UserProfile.username == user.username).first()
+    if user_db:
+        raise HTTPException(status_code=400, detail='username бар экен')
+    new_hash_pass = get_password_hash(user.password)
+    new_user = UserProfile(
+        first_name=user.first_name,
+        last_name=user.last_name,
+        username=user.username,
+        phone_number=user.phone_number,
+        age=user.age,
+        profile_picture=user.profile_picture,
+        role=user.role,
+        hashed_password=new_hash_pass
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {'message': 'Saved'}
 
 
 @course_app.post('/category/create/', response_model=CategorySchema, summary='Категория создания', tags=['Категории'])

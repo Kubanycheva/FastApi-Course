@@ -9,6 +9,7 @@ class UserProfileSchema(BaseModel):
     first_name: str
     last_name: str
     username: str
+    password: str
     phone_number: Optional[str] = None
     age: Optional[int] = None
     profile_picture: Optional[str] = None

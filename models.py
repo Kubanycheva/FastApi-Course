@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional, List
 from database import Base
 from enum import Enum as PyEnum
+from passlib.hash import bcrypt
 
 
 class UserRole(str, PyEnum):
@@ -29,11 +30,18 @@ class UserProfile(Base):
     first_name: Mapped[str] = mapped_column(String(40))
     last_name: Mapped[str] = mapped_column(String(40))
     username: Mapped[str] = mapped_column(String(40), unique=True)
+    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
     phone_number: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     profile_picture: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.student)
     courses: Mapped[List["Course"]] = relationship("Course", back_populates="author")
+
+    def set_passwords(self, password: str):
+        self.hashed_password = bcrypt.hash(password)
+
+    def check_password(self, password: str):
+        return bcrypt.verify(password, self.hashed_password)
 
 
 class Category(Base):
