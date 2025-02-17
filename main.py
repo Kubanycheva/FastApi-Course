@@ -1,6 +1,7 @@
 import fastapi
-from models import Category, Course, Lesson, Exam, Question, Certificate, UserProfile
-from schema import CategorySchema, CourseSchema, LessonSchema, ExamSchema, QuestionSchema, CertificateSchema, UserProfileSchema
+from models import Category, Course, Lesson, Exam, Question, Certificate, UserProfile, RefreshToken
+from schema import (CategorySchema, CourseSchema, LessonSchema, ExamSchema, QuestionSchema, CertificateSchema,
+                    UserProfileSchema)
 from database import SessionLocal
 from fastapi import Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
@@ -47,7 +48,7 @@ def get_password_hash(password):
     return password_context.hash(password)
 
 
-@course_app.post('/register')
+@course_app.post('/register', tags=['Регистрация'])
 async def register(user: UserProfileSchema,  db: Session = Depends(get_db)):
     user_db = db.query(UserProfile).filter(UserProfile.username == user.username).first()
     if user_db:
@@ -70,17 +71,21 @@ async def register(user: UserProfileSchema,  db: Session = Depends(get_db)):
     return {'message': 'Saved'}
 
 
-@course_app.post('/login')
+@course_app.post('/login', tags=['Регистрация'])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(UserProfile).filter(UserProfile.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Маалымат туура эмес')
     access_token = create_access_token({'sub': user.username})
     refresh_token = create_refresh_token({'sub': user.username})
+    token_db = RefreshToken(token=refresh_token, user_id=user.id)
+    db.add(token_db)
+    db.commit()
+
     return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type':'bearer'}
 
 
-@course_app.post('/logout')
+@course_app.post('/logout', tags=['Регистрация'])
 async def logout():
     return {'message': 'Вышли'}
 
@@ -92,7 +97,6 @@ async def create_category(category: CategorySchema, db: Session = Depends(get_db
     db.commit()
     db.refresh(db_category)
     return db_category
-
 
 
 @course_app.get('/category/', response_model=List[CategorySchema], summary='Категория получения информации', tags=['Категории'])
