@@ -6,7 +6,8 @@ from fastapi import Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from schema import *
-from config import SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS, ALGORITHM
+from config import (SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES,
+                    REFRESH_TOKEN_EXPIRE_DAYS, ALGORITHM)
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -15,8 +16,8 @@ from datetime import timedelta, datetime
 
 course_app = fastapi.FastAPI(title='Course Site')
 
-oauth2_schema = OAuth2PasswordBearer(tokenUrl='/auth/login')
 password_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
+oauth2_schema = OAuth2PasswordBearer(tokenUrl='/auth/login')
 
 
 async def get_db():
@@ -30,7 +31,7 @@ async def get_db():
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta if expires_delta else timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    to_encode.update({'exr': expire})
+    to_encode.update({'exp': expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -69,6 +70,21 @@ async def register(user: UserProfileSchema,  db: Session = Depends(get_db)):
     return {'message': 'Saved'}
 
 
+@course_app.post('/login')
+async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(UserProfile).filter(UserProfile.username == form_data.username).first()
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Маалымат туура эмес')
+    access_token = create_access_token({'sub': user.username})
+    refresh_token = create_refresh_token({'sub': user.username})
+    return {'access_token': access_token, 'refresh_token': refresh_token, 'token_type':'bearer'}
+
+
+@course_app.post('/logout')
+async def logout():
+    return {'message': 'Вышли'}
+
+
 @course_app.post('/category/create/', response_model=CategorySchema, summary='Категория создания', tags=['Категории'])
 async def create_category(category: CategorySchema, db: Session = Depends(get_db)):
     db_category = Category(category_name=category.category_name)
@@ -76,6 +92,7 @@ async def create_category(category: CategorySchema, db: Session = Depends(get_db
     db.commit()
     db.refresh(db_category)
     return db_category
+
 
 
 @course_app.get('/category/', response_model=List[CategorySchema], summary='Категория получения информации', tags=['Категории'])

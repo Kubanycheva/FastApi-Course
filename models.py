@@ -36,12 +36,23 @@ class UserProfile(Base):
     profile_picture: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.student)
     courses: Mapped[List["Course"]] = relationship("Course", back_populates="author")
+    tokens: Mapped[List['RefreshToken']] = relationship('RefreshToken', back_populates='user', )
 
     def set_passwords(self, password: str):
         self.hashed_password = bcrypt.hash(password)
 
     def check_password(self, password: str):
         return bcrypt.verify(password, self.hashed_password)
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_token"
+
+    id: Mapped[int] = mapped_column(Integer, autoincrement=True, primary_key=True)
+    token: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    created_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user_profiles.id'))
+    user: Mapped['UserProfile'] = relationship('UserProfile', back_populates='tokens')
 
 
 class Category(Base):
