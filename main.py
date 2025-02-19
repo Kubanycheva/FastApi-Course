@@ -2,11 +2,12 @@ import fastapi
 from models import Category, Course, Lesson, Exam, Question, Certificate, UserProfile, RefreshToken
 from schema import (CategorySchema, CourseSchema, LessonSchema, ExamSchema, QuestionSchema, CertificateSchema,
                     UserProfileSchema)
-from database import SessionLocal
+from database import SessionLocal, engine
 from fastapi import Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from schema import *
+
 from config import (SECRET_KEY, ACCESS_TOKEN_EXPIRE_MINUTES,
                     REFRESH_TOKEN_EXPIRE_DAYS, ALGORITHM)
 from jose import JWTError, jwt
@@ -14,8 +15,36 @@ from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import timedelta, datetime
 
+import redis.asyncio as redis
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+from sqladmin import Admin, ModelView
 
-course_app = fastapi.FastAPI(title='Course Site')
+
+class UserProfileAdmin(ModelView, model=UserProfile):
+    column_list = [UserProfile.id, UserProfile.username, UserProfile.role]
+    name = 'User'
+    name_plural = 'Users'
+
+
+async def init_redis():
+    return redis.Redis.from_url('redis://localhost', encoding='utf-8',
+                                decode_responses=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    redis = await init_redis()
+    await FastAPILimiter.init(redis)
+    yield
+    await redis.close()
+
+
+course_app = fastapi.FastAPI(title='Course Site', lifespan=lifespan)
+admin = Admin(course_app, engine)
+admin.add_view(UserProfileAdmin)
 
 password_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_schema = OAuth2PasswordBearer(tokenUrl='/auth/login')
@@ -71,7 +100,7 @@ async def register(user: UserProfileSchema,  db: Session = Depends(get_db)):
     return {'message': 'Saved'}
 
 
-@course_app.post('/login', tags=['Регистрация'])
+@course_app.post('/login', dependencies=[Depends(RateLimiter(times=3, seconds=50))], tags=['Регистрация'])
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(UserProfile).filter(UserProfile.username == form_data.username).first()
     if not user or not verify_password(form_data.password, user.hashed_password):
@@ -86,9 +115,26 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 
 @course_app.post('/logout', tags=['Регистрация'])
-async def logout():
+async def logout(refresh_token: str, db: Session = Depends(get_db)):
+    stored_token = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).first()
+
+    if not stored_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Маалымат туура эмес')
+
+    db.delete(stored_token)
+    db.commit()
     return {'message': 'Вышли'}
 
+
+@course_app.post('/refresh', tags=['Регистрация'])
+def refresh(refresh_token: str, db: Session = Depends(get_db)):
+    token_entry = db.query(RefreshToken).filter(RefreshToken.token == refresh_token).first()
+    if not token_entry:
+        raise HTTPException(status_code=401, detail='Маалымат туура эмес')
+
+    access_token = create_access_token({'sub': token_entry.user_id})
+
+    return {'access_token': access_token, 'token_type': 'bearer'}
 
 @course_app.post('/category/create/', response_model=CategorySchema, summary='Категория создания', tags=['Категории'])
 async def create_category(category: CategorySchema, db: Session = Depends(get_db)):
