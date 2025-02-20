@@ -29,6 +29,42 @@ class UserProfileAdmin(ModelView, model=UserProfile):
     name_plural = 'Users'
 
 
+class CategoryAdmin(ModelView, model=Category):
+    column_list = [Category.id, Category.category_name]
+    name = 'Category'
+    name_plural = 'Categories'
+
+
+class CourseAdmin(ModelView, model=Course):
+    column_list = [Course.id, Course.course_name, Course.level]
+    name = 'Course'
+    name_plural = 'Course'
+
+
+class LessonAdmin(ModelView, model=Lesson):
+    column_list = [Lesson.id, Lesson.title]
+    name = 'Lesson'
+    name_plural = 'Lessons'
+
+
+class ExamAdmin(ModelView, model=Exam):
+    column_list = [Exam.id, Exam.title]
+    name = 'Exam'
+    name_plural = 'Exams'
+
+
+class QuestionAdmin(ModelView, model=Question):
+    column_list = [Question.id, Question.title]
+    name = 'Questions'
+    name_plural = 'Questions'
+
+
+class CertificateAdmin(ModelView, model=Certificate):
+    column_list = [Certificate.id, Certificate.certificate_url]
+    name = 'Certificate'
+    name_plural = 'Certificates'
+
+
 async def init_redis():
     return redis.Redis.from_url('redis://localhost', encoding='utf-8',
                                 decode_responses=True)
@@ -44,7 +80,14 @@ async def lifespan(app: FastAPI):
 
 course_app = fastapi.FastAPI(title='Course Site', lifespan=lifespan)
 admin = Admin(course_app, engine)
+
 admin.add_view(UserProfileAdmin)
+admin.add_view(CategoryAdmin)
+admin.add_view(CourseAdmin)
+admin.add_view(LessonAdmin)
+admin.add_view(ExamAdmin)
+admin.add_view(QuestionAdmin)
+admin.add_view(CertificateAdmin)
 
 password_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth2_schema = OAuth2PasswordBearer(tokenUrl='/auth/login')
@@ -135,6 +178,7 @@ def refresh(refresh_token: str, db: Session = Depends(get_db)):
     access_token = create_access_token({'sub': token_entry.user_id})
 
     return {'access_token': access_token, 'token_type': 'bearer'}
+
 
 @course_app.post('/category/create/', response_model=CategorySchema, summary='Категория создания', tags=['Категории'])
 async def create_category(category: CategorySchema, db: Session = Depends(get_db)):
