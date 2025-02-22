@@ -79,6 +79,7 @@ async def lifespan(app: FastAPI):
 
 
 course_app = fastapi.FastAPI(title='Course Site', lifespan=lifespan)
+
 admin = Admin(course_app, engine)
 
 admin.add_view(UserProfileAdmin)
