@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
-from models import UserRole, StatusCourse, TypeCourse
+from course_app.db.models import UserRole, StatusCourse, TypeCourse
 
 
 class UserProfileSchema(BaseModel):

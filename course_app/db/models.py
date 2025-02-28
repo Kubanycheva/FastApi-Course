@@ -1,8 +1,8 @@
-from sqlalchemy import Integer, String, ForeignKey, Boolean, DateTime, Text, DECIMAL, Enum
+from sqlalchemy import Integer, String, ForeignKey, DateTime, Text, DECIMAL, Enum
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from datetime import datetime
 from typing import Optional, List
-from database import Base
+from course_app.db.database import Base
 from enum import Enum as PyEnum
 from passlib.hash import bcrypt
 
