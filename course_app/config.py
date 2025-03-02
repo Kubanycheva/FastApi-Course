@@ -2,8 +2,15 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-SECRET_KEY = '8fcc241573ab002305fb5e0bb2e647fc12c6a30beacb36d027b072ce1fbe4da0'
+SECRET_KEY = os.getenv('SECRET_KEY')
 ACCESS_TOKEN_EXPIRE_MINUTES = 40
 REFRESH_TOKEN_EXPIRE_DAYS = 3
 ALGORITHM = 'HS256'
 
+
+class Settings:
+    GITHUB_CLIENT_ID = os.getenv('GITHUB_CLIENT_ID')
+    GITHUB_KEY = os.getenv('GITHUB_KEY')
+    GITHUB_URL = os.getenv('GITHUB_URL')
+
+settings = Settings()

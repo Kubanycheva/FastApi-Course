@@ -1,6 +1,7 @@
+from starlette.middleware.sessions import SessionMiddleware
 import fastapi
 from fastapi import FastAPI
-from api.endpoints import auth, categories, courses, users, lessons, exams, questions, certificates
+from api.endpoints import auth, categories, courses, users, lessons, exams, questions, certificates, social_auth
 
 import redis.asyncio as redis
 from fastapi import FastAPI
@@ -27,6 +28,9 @@ async def lifespan(app: FastAPI):
 
 
 course_app = fastapi.FastAPI(title='Course Site', lifespan=lifespan)
+
+course_app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
+
 setup_admin(course_app)
 
 course_app.include_router(auth.auth_router, tags=['Auth'])
@@ -37,6 +41,7 @@ course_app.include_router(lessons.lessons_router, tags=['Lessons'])
 course_app.include_router(exams.exam_router, tags=['Exams'])
 course_app.include_router(questions.questions_router, tags=['Questions'])
 course_app.include_router(certificates.certificate_router, tags=['Certificates'])
+course_app.include_router(social_auth.social_router, tags=['SocialOAuth'])
 
 if __name__ == '__main__':
     uvicorn.run(course_app, host='127.0.0.1', port=8000)
