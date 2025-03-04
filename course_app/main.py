@@ -45,3 +45,5 @@ course_app.include_router(social_auth.social_router, tags=['SocialOAuth'])
 
 if __name__ == '__main__':
     uvicorn.run(course_app, host='127.0.0.1', port=8000)
+
+

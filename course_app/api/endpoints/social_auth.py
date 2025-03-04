@@ -16,6 +16,16 @@ oauth.register(
 
 )
 
+oauth.register(
+    name='google',
+    client_id=settings.GOOGLE_CLIENT_ID,
+    secret_key=settings.GOOGLE_KEY,
+    authorize_url="https://accounts.google.com/o/oauth2/auth",
+    client_kwargs={"scope": "openid profile email"},
+
+
+)
+
 
 async def get_db():
     db = SessionLocal()
@@ -25,7 +35,13 @@ async def get_db():
         db.close()
 
 
-@social_router.get('/login/github')
+@social_router.get('/github')
 async def github_login(request: Request):
     redirect_uri = settings.GITHUB_URL
     return await oauth.github.authorize_redirect(request, redirect_uri)
+
+
+@social_router.get('/google')
+async def google_login(request: Request):
+    redirect_uri = settings.GOOGLE_URL
+    return await oauth.google.authorize_redirect(request, redirect_uri)
