@@ -36,7 +36,7 @@ class UserProfile(Base):
     profile_picture: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.student)
     courses: Mapped[List["Course"]] = relationship("Course", back_populates="author")
-    tokens: Mapped[List['RefreshToken']] = relationship('RefreshToken', back_populates='user', )
+    tokens: Mapped[List['RefreshToken']] = relationship('RefreshToken', back_populates='user')
 
     def set_passwords(self, password: str):
         self.hashed_password = bcrypt.hash(password)
