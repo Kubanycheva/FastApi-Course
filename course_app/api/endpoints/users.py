@@ -26,7 +26,7 @@ async def create_user(user: UserProfileSchema, db: Session = Depends(get_db)):
 
 
 @users_router.get('/', response_model=UserProfileSchema)
-async def list_user(user_id: int, db: Session = Depends(get_db)):
+async def list_user(db: Session = Depends(get_db)):
     return db.query(UserProfile).all()
 
 
