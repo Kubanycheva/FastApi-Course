@@ -1,4 +1,4 @@
-from sqlalchemy import Integer, String, ForeignKey, DateTime, Text, DECIMAL, Enum
+from sqlalchemy import Integer, String, ForeignKey, DateTime, Text, DECIMAL, Enum, Table, Column
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from datetime import datetime
 from typing import Optional, List
@@ -44,11 +44,82 @@ class UserProfile(Base):
     def check_password(self, password: str):
         return bcrypt.verify(password, self.hashed_password)
 
+    def __str__(self):
+        return self.username
 
 
+class RefreshToken(Base):
+    __tablename__ = "refresh_token"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    token: Mapped[str] = mapped_column(String, nullable=False)
+    created_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user_profiles.id'))
+    user: Mapped['UserProfile'] = relationship('UserProfile', back_populates='tokens')
 
 
+class Category(Base):
+    __tablename__ = "categories"
 
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    category_name: Mapped[str] = mapped_column(String, unique=True, index=True)
+
+    def __repr__(self):
+        return self.category_name
+
+
+class Course(Base):
+    __tablename__ = "courses"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    course_name: Mapped[str] = mapped_column(String, index=True)
+    description: Mapped[str] = mapped_column(Text)
+    level: Mapped[StatusCourse] = mapped_column(Enum(StatusCourse), nullable=False, default=StatusCourse.level1)
+    price: Mapped[DECIMAL] = mapped_column(DECIMAL(8, 2))
+    type_course: Mapped[TypeCourse] = mapped_column(Enum(TypeCourse), nullable=False, default=TypeCourse.type1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    author_id: Mapped[int] = mapped_column(ForeignKey("user_profiles.id"))
+
+    author: Mapped["UserProfile"] = relationship("UserProfile", back_populates="courses")
+
+
+class Lesson(Base):
+    __tablename__ = "lessons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String, index=True)
+    video_url: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    content: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+
+
+class Exam(Base):
+    __tablename__ = "exams"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    title: Mapped[str] = mapped_column(String, index=True)
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    end_time: Mapped[int] = mapped_column(Integer)
+
+
+class Question(Base):
+    __tablename__ = "questions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    exam_id: Mapped[int] = mapped_column(ForeignKey("exams.id"))
+    title: Mapped[str] = mapped_column(String, index=True)
+    score: Mapped[int] = mapped_column(Integer)
+
+
+class Certificate(Base):
+    __tablename__ = "certificates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    student_id: Mapped[int] = mapped_column(ForeignKey("user_profiles.id"))
+    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id"))
+    issued_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    certificate_url: Mapped[str] = mapped_column(String)
 
 
 
