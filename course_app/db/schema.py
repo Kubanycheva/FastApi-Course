@@ -82,3 +82,23 @@ class CertificateSchema(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CartItemSchema(BaseModel):
+    id: int
+    cart_id: int
+    course_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class CartSchema(BaseModel):
+    id: int
+    user_id: int
+    items: List[CartItemSchema] = []
+
+    class Config:
+        from_attributes = True
+
+

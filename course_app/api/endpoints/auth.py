@@ -9,7 +9,7 @@ from course_app.db.database import SessionLocal
 from typing import Optional
 from course_app.config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 from course_app.db.schema import UserProfileSchema
-from course_app.db.models import UserProfile, RefreshToken
+from course_app.db.models import UserProfile, RefreshToken, Cart
 from sqlalchemy.orm import Session
 
 auth_router = APIRouter(prefix='/auth', tags=['Auth'])
@@ -65,6 +65,11 @@ async def register(user: UserProfileSchema,  db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+
+    new_cart = Cart(user_id=new_user.id)
+    db.add(new_cart)
+    db.commit()
+
     return {'message': 'Saved'}
 
 
