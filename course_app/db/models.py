@@ -6,6 +6,7 @@ from course_app.db.database import Base
 from enum import Enum as PyEnum
 from passlib.hash import bcrypt
 
+
 course_user = Table('course_user', Base.metadata,
                     Column('user_id', ForeignKey('user_profiles.id'), primary_key=True),
                     Column('course_id', ForeignKey('courses.id'), primary_key=True))
@@ -39,11 +40,16 @@ class UserProfile(Base):
     age: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     profile_picture: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), nullable=False, default=UserRole.student)
-    courses: Mapped["Course"] = relationship("Course", back_populates="author", secondary=course_user)
+
+    course: Mapped["Course"] = relationship("Course", back_populates="author", secondary=course_user)
+
     tokens: Mapped[List['RefreshToken']] = relationship('RefreshToken', back_populates='user',
                                                         cascade='all, delete-orphan')
+
     cart_user:  Mapped['Cart'] = relationship('Cart', back_populates='users', cascade='all, delete-orphan',
                                               uselist=False)
+    favorite_user: Mapped['Favorite'] = relationship('Favorite', back_populates='users', cascade='all, delete_orphan',
+                                                     uselist=False)
 
     def set_passwords(self, password: str):
         self.hashed_password = bcrypt.hash(password)
@@ -86,7 +92,7 @@ class Course(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    author: Mapped['UserProfile'] = relationship('UserProfile', back_populates='courses', secondary=course_user)
+    author: Mapped['UserProfile'] = relationship('UserProfile', back_populates='course', secondary=course_user)
 
 
 class Lesson(Base):
@@ -131,9 +137,11 @@ class Cart(Base):
     __tablename__ = 'cart'
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
     user_id: Mapped[int] = mapped_column(ForeignKey('user_profiles.id'))
     users: Mapped['UserProfile'] = relationship('UserProfile',
                                                 back_populates='cart_user')
+
     items: Mapped[List['CartItem']] = relationship('CartItem', back_populates='cart',
                                                    cascade='all, delete-orphan')
 
@@ -144,7 +152,22 @@ class CartItem(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     cart_id: Mapped[int] = mapped_column(ForeignKey('cart.id'))
     cart: Mapped['Cart'] = relationship('Cart', back_populates='items')
+
     course_id: Mapped[int] = mapped_column(ForeignKey('courses.id'))
     course: Mapped['Course'] = relationship('Course')
 
+
+class Favorite(Base):
+    __tablename__ = 'favorite'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    favorite_id: Mapped[int] = mapped_column(ForeignKey('user_profiles.id'))
+    favorites: Mapped['UserProfile'] = relationship('UserProfile', back_populates='favorite_user')
+
+
+class FavoriteItem(Base):
+    __tablename__ = 'favorite_item'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    favorite_id: Mapped[int] = mapped_column(ForeignKey('favorite.id'))
 

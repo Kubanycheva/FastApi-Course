@@ -25,6 +25,7 @@ async def create_course(course: CourseSchema, db: Session = Depends(get_db)):
     db.add(db_course)
     db.commit()
     db.refresh(db_course)
+
     return db_course
 
 

@@ -36,7 +36,6 @@ class CourseSchema(BaseModel):
     type_course: TypeCourse
     created_at: datetime
     updated_at: datetime
-    author_id: int
 
     class Config:
         from_attributes = True
@@ -86,7 +85,6 @@ class CertificateSchema(BaseModel):
 
 class CartItemSchema(BaseModel):
     id: int
-    cart_id: int
     course_id: int
 
     class Config:
@@ -97,8 +95,13 @@ class CartSchema(BaseModel):
     id: int
     user_id: int
     items: List[CartItemSchema] = []
+    total_price: float
 
     class Config:
         from_attributes = True
+
+
+class CarItemCreateSchema(BaseModel):
+    course_id: int
 
 
