@@ -48,8 +48,8 @@ class UserProfile(Base):
 
     cart_user:  Mapped['Cart'] = relationship('Cart', back_populates='users', cascade='all, delete-orphan',
                                               uselist=False)
-    favorite_user: Mapped['Favorite'] = relationship('Favorite', back_populates='users', cascade='all, delete_orphan',
-                                                     uselist=False)
+    # favorite_user: Mapped['Favorite'] = relationship('Favorite', back_populates='users', cascade='all, delete_orphan',
+    #                                                  uselist=False)
 
     def set_passwords(self, password: str):
         self.hashed_password = bcrypt.hash(password)
@@ -157,17 +157,17 @@ class CartItem(Base):
     course: Mapped['Course'] = relationship('Course')
 
 
-class Favorite(Base):
-    __tablename__ = 'favorite'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    favorite_id: Mapped[int] = mapped_column(ForeignKey('user_profiles.id'))
-    favorites: Mapped['UserProfile'] = relationship('UserProfile', back_populates='favorite_user')
-
-
-class FavoriteItem(Base):
-    __tablename__ = 'favorite_item'
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    favorite_id: Mapped[int] = mapped_column(ForeignKey('favorite.id'))
+# class Favorite(Base):
+#     __tablename__ = 'favorite'
+#
+#     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+#     favorite_id: Mapped[int] = mapped_column(ForeignKey('user_profiles.id'))
+#     favorites: Mapped['UserProfile'] = relationship('UserProfile', back_populates='favorite_user')
+#
+#
+# class FavoriteItem(Base):
+#     __tablename__ = 'favorite_item'
+#
+#     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+#     favorite_id: Mapped[int] = mapped_column(ForeignKey('favorite.id'))
 

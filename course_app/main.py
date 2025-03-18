@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from fastapi_limiter import FastAPILimiter
 from sqladmin import Admin, ModelView
-
+from fastapi_pagination import add_pagination
 import uvicorn
 
 from course_app.admin.setup import setup_admin
@@ -32,6 +32,7 @@ course_app = fastapi.FastAPI(title='Course Site', lifespan=lifespan)
 course_app.add_middleware(SessionMiddleware, secret_key="SECRET_KEY")
 
 setup_admin(course_app)
+add_pagination(course_app)
 
 course_app.include_router(auth.auth_router)
 course_app.include_router(users.users_router)
